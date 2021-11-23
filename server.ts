@@ -1,7 +1,7 @@
 import express from "express";
 import { connectToDatabase } from "./service"
-import { gamesRouter } from "./routers/gamesRouter";
-import { usersRouter } from "./routers/usersRouter";
+import { gamesRouter } from "./routers/games";
+import { usersRouter } from "./routers/users";
 
 const app = express();
 

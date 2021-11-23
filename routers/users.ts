@@ -93,3 +93,47 @@ usersRouter.get("/:id/games", async (req: Request, res: Response) => {
         res.status(404).send(`Unable to find matching document with id: ${req.params.id}`);
     }
 });
+
+usersRouter.post("/:id/games", async (req: Request, res: Response) => {
+    const userId = req?.params?.id;
+    try {
+        const gameId = req.body.id;
+        const query = { _id: new ObjectId(userId) };
+        const game = (await collections.games?.findOne({ _id: new ObjectId(gameId) })) as unknown as User;
+        if (game) {
+            const result = await collections.users?.updateOne(query, { $push: { "games" : gameId}});
+            result
+            ? res.status(201).send({})
+            : res.status(500).send("Failed to create a new user.");
+        }
+        else{
+            res.status(500).send(`No game ${gameId} found`);
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(400).send((error as Error).message);
+    }
+});
+
+usersRouter.post("/:id/games/:gid", async (req: Request, res: Response) => {
+    const userId = req?.params?.id;
+    try {
+        const gameId = req?.params?.gid;
+        var playtime = req.body.playTime;
+        const query = { _id: new ObjectId(userId) }
+        const user = (await collections.users?.findOne(query)) as unknown as User;
+        for ( let i = 0; i < user.games.length; i++) {
+          if (user.games[i].game == gameId){
+            let r = `games.${i}.playTime`
+            const result = await collections.users?.updateOne(query, { $set: { r : playtime}});
+            result
+            ? res.status(201).send({})
+            : res.status(500).send("Failed to update play time.");
+          }  
+        };
+        res.status(500).send("Failed to update play time.");
+    } catch (error) {
+        console.error(error);
+        res.status(400).send((error as Error).message);
+    }
+});
