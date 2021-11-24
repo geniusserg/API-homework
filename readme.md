@@ -1,5 +1,7 @@
 # Take-home assignment: API
 
+## Created by MongoDB backend. Create database "steam", this server will connect to it on port 21017
+
 For this assignment you will be creating a simple REST API around a database backend. You may use any language or framework you like for the API, and any database you prefer for the backend.
 
 Here at Rainway we love video games. As such, you will be creating a system to manage users' video game libraries.
