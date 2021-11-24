@@ -114,10 +114,11 @@ usersRouter.post("/:id/games", async (req: Request, res: Response) => {
     const userId = req?.params?.id;
     try {
         const gameId = req.body.id;
+        const playtime = await getFromBackup(userId, gameId);
         const query = { _id: new ObjectId(userId) };
         const game = (await collections.games?.findOne({ _id: new ObjectId(gameId) })) as unknown as Game;
         if (game) {
-            const result = await collections.users?.updateOne(query, { $push: { "games": { "game" : gameId, "playTime": 0 }}});
+            const result = await collections.users?.updateOne(query, { $push: { "games": { "game" : gameId, "playTime": playtime }}});
             result
             ? res.status(201).send({})
             : res.status(500).send("Failed to create a new user.");
@@ -136,9 +137,6 @@ usersRouter.post("/:id/games/:gid", async (req: Request, res: Response) => {
     try {
         const gameId = req?.params?.gid;
         var playtime = req.body.playTime;
-        console.info(`lets update ${gameId} playtime for ${userId} with vlaue ${playtime}`)
-        const query = { _id: new ObjectId(userId) }
-        const user = (await collections.users?.findOne(query)) as unknown as User;
         const result = await collections.users?.updateOne({_id: new ObjectId(userId), 'games': { $elemMatch: { game: gameId}}}, {$set: { "games.$.playTime" : playtime}});
         result
         ? res.status(201).send({})
@@ -148,3 +146,35 @@ usersRouter.post("/:id/games/:gid", async (req: Request, res: Response) => {
         res.status(400).send((error as Error).message);
     }
 });
+
+usersRouter.delete("/:id/games/:gid", async (req: Request, res: Response) => {
+    const userId = req?.params?.id;
+    try {
+        const gameId = req?.params?.gid;
+        const gameItem = await collections.users?.findOne({_id: new ObjectId(userId), 'games': { $elemMatch: { game: gameId}}}) as unknown as {game: string, playTime: number};
+        if (gameItem){
+            console.info(gameItem);
+            backup(userId, gameId, gameItem.playTime);
+        }
+        const result = await collections.users?.updateOne({_id: new ObjectId(userId)} , { $pull : {'games': { game: gameId}}});
+        result
+        ? res.status(201).send({})
+        : res.status(500).send("Failed to update play time.");
+    } catch (error) {
+        console.error(error);
+        res.status(400).send((error as Error).message);
+    }
+});
+
+const backup = (async (userId: string, gameId: string, playtime: number) => { 
+    const result = await collections.backup?.insertOne({userId: userId, gameId: gameId, playTime: playtime});
+})
+
+const getFromBackup = (async (userId: string, gameId: string) => { 
+    let result = 0;
+    const backupRecord = await collections.backup?.findOne({userId: userId, gameId: gameId}) as unknown as {userId: string, gameId: string, playtime: number};
+    if (backupRecord){
+        result = backupRecord.playtime;
+    }
+    return result;
+})
